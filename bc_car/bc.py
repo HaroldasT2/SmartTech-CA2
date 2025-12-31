@@ -37,6 +37,7 @@ def main():
     train_and_test_model(model, X_train, y_train, X_valid, y_valid)
     display_original_and_zoomed(image_paths)
     display_original_and_flipped(image_paths, y_train)
+    display_original_and_shadow(image_paths)
   
 def display_original_and_flipped(image_paths, steering_angles):
     random_index = random.randint(0, 1000)
@@ -62,6 +63,23 @@ def display_original_and_zoomed(image_paths):
     axs[0].set_title("Original Image")
     axs[1].imshow(zoomed_image)
     axs[1].set_title("Zoomed Image")
+    plt.show()
+
+def display_original_and_shadow(image_paths):
+    """
+    Haroldas -
+    Displays original image alongside shadow-augmented version.
+    This shows how the model will learn to handle shadows on the track.
+    """
+    image = image_paths[random.randint(0, 1000)]
+    original_image = mpimg.imread(image)
+    shadow_image = img_random_shadow(original_image)
+    fig, axs = plt.subplots(1, 2, figsize=(15, 10))
+    fig.tight_layout()
+    axs[0].imshow(original_image)
+    axs[0].set_title("Original Image")
+    axs[1].imshow(shadow_image)
+    axs[1].set_title("Shadow Augmented Image")
     plt.show()
     
     
@@ -151,6 +169,49 @@ def img_random_brightness(image_to_brighten):
     bright_image = bright_func.augment_image(image_to_brighten)
     return bright_image
 
+def img_random_shadow(image_to_shadow):
+    """
+    Haroldas -
+    Adds random shadow to simulate shadows on the track.
+    This helps the model not get confused by dark shadows vs actual road edges.
+    """
+    # Converts to HSV (Hue, Saturation, Value) 
+    image_hsv = cv2.cvtColor(image_to_shadow, cv2.COLOR_RGB2HSV)
+    
+    # Random shadow parameters
+    height, width = image_to_shadow.shape[0], image_to_shadow.shape[1]
+    
+    # Creates random shadow coordinates (vertical or horizontal shadows)
+    if np.random.rand() < 0.5:
+        # Vertical shadow (left/right side of image)
+        shadow_x1 = width * np.random.uniform()
+        shadow_x2 = width * np.random.uniform()
+        shadow_y1 = 0
+        shadow_y2 = height
+    else:
+        # Horizontal shadow (top/bottom of image)
+        shadow_x1 = 0
+        shadow_x2 = width
+        shadow_y1 = height * np.random.uniform()
+        shadow_y2 = height * np.random.uniform()
+    
+    # Creates mask for shadow region
+    shadow_mask = np.zeros_like(image_to_shadow[:, :, 0])
+    shadow_pts = np.array([[shadow_x1, shadow_y1], [shadow_x2, shadow_y2], 
+                           [shadow_x2, height if shadow_y1 == 0 else 0], 
+                           [shadow_x1, height if shadow_y1 == 0 else 0]], dtype=np.int32)
+    cv2.fillPoly(shadow_mask, [shadow_pts], 1)
+    
+    # Applies shadow by reducing the brightness channel
+    shadow_intensity = np.random.uniform(0.3, 0.7)  # Random darkness
+    image_hsv[:, :, 2] = np.where(shadow_mask == 1, 
+                                   image_hsv[:, :, 2] * shadow_intensity, 
+                                   image_hsv[:, :, 2])
+    
+    # Converts back to RGB
+    image_shadow = cv2.cvtColor(image_hsv, cv2.COLOR_HSV2RGB)
+    return image_shadow
+
 def img_random_flip(image_to_flip, steering_angle):
     #0 - flip horizontal, 1 vertical, -1 combo of both
     flipped_image = cv2.flip(image_to_flip, 1)
@@ -166,6 +227,8 @@ def random_augment(image_to_augment, steering_angle):
         augment_image = pan(augment_image)
     if np.random.rand() < 0.5:
         augment_image = img_random_brightness(augment_image)
+    if np.random.rand() < 0.5:
+        augment_image = img_random_shadow(augment_image)
     if np.random.rand() < 0.5:
         augment_image, steering_angle = img_random_flip(augment_image, steering_angle)
     return augment_image, steering_angle
