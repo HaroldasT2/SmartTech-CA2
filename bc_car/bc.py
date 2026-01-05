@@ -268,13 +268,35 @@ def split_data(data):
     return X_train, X_valid, y_train, y_valid, image_paths
     
 def load_steering_img(datadir, data):
+    """
+    Haroldas -
+    Loads images from all three cameras (center, left, right).
+    This triples the training data and teaches recovery behavior.
+    - Center camera: original steering angle
+    - Left camera: +0.2 correction (steer right to recover)
+    - Right camera: -0.2 correction (steer left to recover)
+    """
     image_path = []
     steerings = []
+    steering_correction = 0.2  # Correction factor for left/right cameras
+    
     for i in range(len(data)):
         indexed_data = data.iloc[i]
         center, left, right = indexed_data[0], indexed_data[1], indexed_data[2]
+        steering_angle = float(indexed_data[3])
+        
+        # Center camera
         image_path.append(os.path.join(datadir, center.strip()))
-        steerings.append(float(indexed_data[3]))
+        steerings.append(steering_angle)
+        
+        # Left camera - need to steer right to get back to center
+        image_path.append(os.path.join(datadir, left.strip()))
+        steerings.append(steering_angle + steering_correction)
+        
+        # Right camera - need to steer left to get back to center
+        image_path.append(os.path.join(datadir, right.strip()))
+        steerings.append(steering_angle - steering_correction)
+    
     image_paths = np.asarray(image_path)
     steerings = np.array(steerings)
     return image_paths, steerings
