@@ -22,8 +22,7 @@ from imgaug import augmenters as iaa
 
 num_bins = 25
 samples_per_bin = 400
-datadir = "E:\\4th Year stuff\\Smart tech\\SmartTech-CA2\\bc_car\\DataForCar\\" 
-
+datadir = "C:\\Users\\brocc\\source\\repos\\SmartTech-CA2\\bc_car\\DataForCar\\" 
 def main():
     data = load_data()
     bins, centre = bin_and_plot_data(data)
