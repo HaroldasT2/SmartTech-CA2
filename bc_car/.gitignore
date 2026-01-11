@@ -25,9 +25,8 @@ ENV/
 *.hdf5
 
 # Training data
-DataForCar/
+DataForCar/IMG
 data/
-*.csv
 
 # Logs
 *.log
